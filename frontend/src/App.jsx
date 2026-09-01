@@ -1,20 +1,53 @@
-// Seed do componente raiz do Document Management System.
-//
-// Este é apenas um ponto de partida mínimo. Durante o Passo 3 você vai usar o
-// Agent Mode do GitHub Copilot para construir os componentes:
-//   - components/UploadComponent
-//   - components/DocumentList
-//   - components/DownloadButton
-// e o serviço services/ que consome a API do backend via fetch.
+import { useCallback, useEffect, useState } from 'react';
+import UploadComponent from './components/UploadComponent';
+import DocumentList from './components/DocumentList';
+import { listDocuments } from './services/documentsApi';
 
 export default function App() {
+  const [owner, setOwner] = useState('');
+  const [documents, setDocuments] = useState([]);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const refreshDocuments = useCallback(async (currentOwner) => {
+    if (!currentOwner) {
+      setDocuments([]);
+      return;
+    }
+
+    try {
+      setDocuments(await listDocuments(currentOwner));
+      setErrorMessage('');
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshDocuments(owner);
+  }, [owner, refreshDocuments]);
+
   return (
     <main style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
       <h1>Document Management System</h1>
-      <p>
-        Seed do frontend. Construa a interface durante o Passo 3 usando o Agent
-        Mode do GitHub Copilot.
-      </p>
+
+      <label htmlFor="owner-input">Usuário</label>{' '}
+      <input
+        id="owner-input"
+        type="text"
+        value={owner}
+        onChange={(event) => setOwner(event.target.value)}
+        placeholder="Informe seu identificador de usuário"
+      />
+
+      {owner ? (
+        <>
+          <UploadComponent owner={owner} onUploadSuccess={() => refreshDocuments(owner)} />
+          {errorMessage && <p role="alert">{errorMessage}</p>}
+          <DocumentList documents={documents} owner={owner} />
+        </>
+      ) : (
+        <p>Informe um usuário para enviar e listar documentos.</p>
+      )}
     </main>
   );
 }
