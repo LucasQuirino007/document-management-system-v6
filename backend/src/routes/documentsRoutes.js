@@ -2,6 +2,7 @@ const path = require('path');
 const { randomUUID } = require('crypto');
 const express = require('express');
 const multer = require('multer');
+const rateLimit = require('express-rate-limit');
 const {
   uploadDocumentController,
   listDocumentsController,
@@ -20,9 +21,16 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 const router = express.Router();
+const fileSystemRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Muitas requisições. Tente novamente em instantes.' }
+});
 
-router.post('/upload', upload.single('document'), uploadDocumentController);
+router.post('/upload', fileSystemRateLimiter, upload.single('document'), uploadDocumentController);
 router.get('/documents', listDocumentsController);
-router.get('/documents/:id/download', downloadDocumentController);
+router.get('/documents/:id/download', fileSystemRateLimiter, downloadDocumentController);
 
 module.exports = router;
