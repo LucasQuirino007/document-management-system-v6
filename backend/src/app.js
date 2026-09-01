@@ -11,16 +11,31 @@
 // usando multer com diskStorage. Não utilize provedores externos.
 
 const express = require('express');
+const documentsRoutes = require('./routes/documentsRoutes');
+const { ServiceError } = require('./services/errors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(documentsRoutes);
 
 // Endpoint de verificação de saúde. As demais rotas (/upload, /documents,
 // /documents/:id/download) serão implementadas durante o Passo 2.
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+app.use((error, _req, res, _next) => {
+  if (error instanceof ServiceError) {
+    return res.status(error.statusCode).json({ error: error.message });
+  }
+
+  if (error instanceof Error && error.name === 'MulterError') {
+    return res.status(400).json({ error: 'Falha no upload do arquivo.' });
+  }
+
+  return res.status(500).json({ error: 'Erro interno do servidor.' });
 });
 
 if (require.main === module) {
